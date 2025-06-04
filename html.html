@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="hu">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vevők és Kiállítók</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: chocolate;
+      color: #eee;
+    }
+
+    h1 {
+      color: greenyellow;
+    }
+
+    input,
+    button,
+    select {
+      margin: 5px 0;
+      padding: 2px;
+      font-size: 1rem;
+    }
+
+    .entity,
+    .header-row {
+      margin: 10px 0;
+      padding: 10px;
+      background: #333;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+    }
+
+    .entity span,
+    .header-row span {
+      display: inline-block;
+      width: 200px;
+    }
+
+    .entity span:nth-child(2),
+    .header-row span:nth-child(2) {
+      margin-right: 40px;
+    }
+
+    .header-row span {
+      font-weight: bold;
+    }
+
+    .formok {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .form-container {
+      flex: 1;
+      background: orangered;
+      padding: 10px;
+      border-radius: 6px;
+    }
+  </style>
+  <script>
+    const showFormBtn = document.getElementById('szamlajelen');
+  const szamlaaddForm = document.getElementById('szamlaadd');
+
+  showFormBtn.addEventListener('click', () => {
+    if (szamlaaddForm.style.display === 'none' || szamlaaddForm.style.display === '') {
+      szamlaaddForm.style.display = 'block';
+    } else {
+      szamlaaddForm.style.display = 'none';
+    }
+  });
+  </script>
+</head>
+
+<body>
+  <h1>Vevők és Kiállítók kezelése</h1>
+
+  <div>
+    <button onclick="betoltSzamlak()" id="szamlajelen">Számlák megjelenítése</button>
+    <button onclick="betoltVevok()">Vevők megjelenítése</button>
+    <button onclick="betoltKiallitok()">Kiállítók megjelenítése</button>
+  </div>
+
+  <div class="formok">
+    <div class="form-container">
+      <h2 id="addTitle">Új elem hozzáadása</h2>
+      <input type="text" id="nev" placeholder="Név" /><br />
+      <input type="text" id="cim" placeholder="Cím" /><br />
+      <input type="text" id="adoszam" placeholder="Adószám" /><br />
+      <button onclick="ujElem()">➕ Hozzáadás</button>
+    </div>
+
+    <div class="form-container">
+      <h2 id="editTitle">Elem szerkesztése</h2>
+      <input type="hidden" id="szerk-id" />
+      <input type="text" id="szerk-nev" placeholder="Név" /><br />
+      <input type="text" id="szerk-cim" placeholder="Cím" /><br />
+      <input type="text" id="szerk-adoszam" placeholder="Adószám" /><br />
+      <button onclick="mentSzerkesztes()">💾 Mentés</button>
+    </div>
+  </div>
+
+  <div id="entitasok"></div>
+
+  <script>
+    const API_BASE = "http://localhost:8080";
+    let currentType = null; 
+
+
+    async function betoltSzamlak() {
+      currentType = "szamla";
+      document.getElementById("addTitle").innerText = "Új számla hozzáadása";
+      document.getElementById("editTitle").innerText = "Számla szerkesztése";
+      clearEditForm();
+
+      try {
+        const res = await fetch(`${API_BASE}/szamla`);
+        if (!res.ok) throw new Error("Hiba a számlák lekérésekor");
+        const szamlak = await res.json();
+        renderEntities(szamlak);
+      } catch (err) {
+        document.getElementById("entitasok").innerHTML = `<p style="color:red;">Hiba: ${err.message}</p>`;
+      }
+    }
+
+
+    async function betoltVevok() {
+      currentType = "vevo";
+      document.getElementById("addTitle").innerText = "Új vevő hozzáadása";
+      document.getElementById("editTitle").innerText = "Vevő szerkesztése";
+      clearEditForm();
+      try {
+        const res = await fetch(`${API_BASE}/vevo`);
+        if (!res.ok) throw new Error("Hiba a vevők lekérésekor");
+        const vevok = await res.json();
+        renderEntities(vevok);
+      } catch (err) {
+        document.getElementById("entitasok").innerHTML = `<p style="color:red;">Hiba: ${err.message}</p>`;
+      }
+    }
+
+    async function betoltKiallitok() {
+      currentType = "kiallito";
+      document.getElementById("addTitle").innerText = "Új kiállító hozzáadása";
+      document.getElementById("editTitle").innerText = "Kiállító szerkesztése";
+      clearEditForm();
+      try {
+        const res = await fetch(`${API_BASE}/kiallito`);
+        if (!res.ok) throw new Error("Hiba a kiállítók lekérésekor");
+        const kiallitok = await res.json();
+        renderEntities(kiallitok);
+      } catch (err) {
+        document.getElementById("entitasok").innerHTML = `<p style="color:red;">Hiba: ${err.message}</p>`;
+      }
+    }
+
+    function renderEntities(items) {
+  const container = document.getElementById("entitasok");
+  container.innerHTML = "";
+
+  if (!items.length) {
+    container.innerHTML = "<p>Nincs megjeleníthető adat.</p>";
+    return;
+  }
+
+  if (currentType === "szamla") {
+    items.forEach(szamla => {
+      let kiallito = {};
+  let vevo = {};
+
+  try {
+    kiallito = JSON.parse(szamla.kiallito);
+    vevo = JSON.parse(szamla.vevo);
+  } catch (e) {
+    console.error("Hibás JSON a kiállító vagy vevő mezőben:", e);
+  }
+
+      const card = document.createElement("div");
+      card.style.background = "#444";
+      card.style.borderRadius = "8px";
+      card.style.padding = "15px";
+      card.style.margin = "10px 0";
+      card.style.color = "#eee";
+      card.style.boxShadow = "0 2px 6px rgba(0,0,0,0.5)";
+      card.style.display = "flex";
+      card.style.flexDirection = "column";
+
+      card.innerHTML = `
+        <h3 style="margin:0 0 10px 0; border-bottom: 2px solid greenyellow; padding-bottom: 5px;">
+          Számlaszám: ${szamla.szSzam}
+        </h3>
+
+        <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+          <div style="flex: 1; padding-right: 10px; border-right: 1px solid #666;">
+            <h4 style="margin-top: 0; color: lightblue;">Eladó (Kiállító)</h4>
+            <p><strong>Név:</strong> ${kiallito.nev || "–"}</p>
+            <p><strong>Cím:</strong> ${kiallito.cim || "–"}</p>
+            <p><strong>Adószám:</strong> ${kiallito.adoszam || "–"}</p>
+          </div>
+
+          <div style="flex: 1; padding-left: 10px;">
+            <h4 style="margin-top: 0; color: lightgreen;">Vevő</h4>
+            <p><strong>Név:</strong> ${vevo.nev || "–"}</p>
+            <p><strong>Cím:</strong> ${vevo.cim || "–"}</p>
+            <p><strong>Adószám:</strong> ${vevo.adoszam || "–"}</p>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 10px;">
+          <p><strong>Számla kelte:</strong> ${szamla.szKelt ? new Date(szamla.szKelt).toLocaleDateString() : "–"}</p>
+          <p><strong>Teljesítés dátuma:</strong> ${szamla.tDatum ? new Date(szamla.tDatum).toLocaleDateString() : "–"}</p>
+          <p><strong>Fizetési határidő:</strong> ${szamla.fHatarido ? new Date(szamla.fHatarido).toLocaleDateString() : "–"}</p>
+        </div>
+
+        <div style="font-size: 1.1em; font-weight: bold; color: gold;">
+          Nettó összeg: ${szamla.vegosszeg} Ft<br />
+          ÁFA: ${szamla.afa} %
+        </div>
+      `;
+
+      container.appendChild(card);
+    });
+
+    return;
+  }
+
+  const headerDiv = document.createElement("div");
+  headerDiv.className = "header-row";
+  headerDiv.innerHTML = `
+    <span>Név</span>
+    <span>Cím</span>
+    <span>Adószám</span>
+    <span style="width:auto"></span>
+  `;
+  container.appendChild(headerDiv);
+
+  items.forEach(item => {
+    const div = document.createElement("div");
+    div.className = "entity";
+    div.innerHTML = `
+      <span>${item.nev}</span>
+      <span>${item.cim}</span>
+      <span>${item.adoszam}</span>
+      <button onclick='szerkesztElem(${JSON.stringify(item)})'>Szerkesztés</button>
+      <button onclick="torolElem(${item.id})">Törlés</button>
+    `;
+    container.appendChild(div);
+  });
+}
+
+
+
+    async function ujElem() {
+      if (!currentType) {
+        return alert("Előbb válaszd ki, hogy vevőt vagy kiállítót szeretnél kezelni!");
+      }
+      const nev = document.getElementById("nev").value.trim();
+      const cim = document.getElementById("cim").value.trim();
+      const adoszam = document.getElementById("adoszam").value.trim();
+      if (!nev || !cim || !adoszam) {
+        return alert("Tölts ki minden mezőt!");
+      }
+      try {
+        await fetch(`${API_BASE}/${currentType}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nev, cim, adoszam })
+        });
+        document.getElementById("nev").value = "";
+        document.getElementById("cim").value = "";
+        document.getElementById("adoszam").value = "";
+        if (currentType === "vevo") await betoltVevok();
+        else await betoltKiallitok();
+      } catch (err) {
+        alert(`Hiba: ${err.message}`);
+      }
+    }
+
+    async function torolElem(id) {
+      if (!confirm("Biztosan törlöd?")) return;
+      try {
+        await fetch(`${API_BASE}/${currentType}/${id}`, { method: "DELETE" });
+        if (currentType === "vevo") await betoltVevok();
+        else await betoltKiallitok();
+      } catch (err) {
+        alert(`Hiba: ${err.message}`);
+      }
+    }
+
+    function szerkesztElem(item) {
+      document.getElementById("szerk-id").value = item.id;
+      document.getElementById("szerk-nev").value = item.nev;
+      document.getElementById("szerk-cim").value = item.cim;
+      document.getElementById("szerk-adoszam").value = item.adoszam;
+    }
+
+    async function mentSzerkesztes() {
+      const id = document.getElementById("szerk-id").value;
+      const nev = document.getElementById("szerk-nev").value.trim();
+      const cim = document.getElementById("szerk-cim").value.trim();
+      const adoszam = document.getElementById("szerk-adoszam").value.trim();
+      if (!id) return alert("Hiányzik az elem ID!");
+      if (!nev || !cim || !adoszam) return alert("Tölts ki minden mezőt!");
+      try {
+        await fetch(`${API_BASE}/${currentType}/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nev, cim, adoszam })
+        });
+        document.getElementById("szerk-id").value = "";
+        document.getElementById("szerk-nev").value = "";
+        document.getElementById("szerk-cim").value = "";
+        document.getElementById("szerk-adoszam").value = "";
+        if (currentType === "vevo") await betoltVevok();
+        else await betoltKiallitok();
+      } catch (err) {
+        alert(`Hiba: ${err.message}`);
+      }
+    }
+
+    function clearEditForm() {
+      document.getElementById("szerk-id").value = "";
+      document.getElementById("szerk-nev").value = "";
+      document.getElementById("szerk-cim").value = "";
+      document.getElementById("szerk-adoszam").value = "";
+    }
+  </script>
+</body>
+
+</html>
