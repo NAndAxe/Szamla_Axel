@@ -34,15 +34,15 @@ app.get("/vevo", (req, res) => {
 
 app.post("/szamla", (req, res) => {
     try {
-        const { kiallito, vevo, szSzama, szKelte } = req.body
-        if (!kiallito || !vevo || !szSzama || !szKelte) {
+        const { kiallito, vevo, szSzama, vegosszeg, afa } = req.body
+        if (!kiallito || !vevo || !szSzama || !vegosszeg || !afa) {
             return res.status(400).json({ message: "Data missing" })
         }
-        const savedszamla = db.createszamla(kiallito, vevo, szSzama, szKelte)
+        const savedszamla = db.createszamla(kiallito, vevo, szSzama, vegosszeg, afa)
         if (savedszamla.changes != 1) {
             return res.status(422).json({ message: "Failed to upload" })
         }
-        res.status(201).json({ id: savedszamla.lastInsertRowid, kiallito, vevo, szSzama })
+        res.status(201).json({ id: savedszamla.lastInsertRowid, kiallito, vevo, szSzama,vegosszeg,afa })
     } catch (error) {
         res.status(500).json({ message: "Error: " + error })
     }

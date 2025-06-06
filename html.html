@@ -62,6 +62,13 @@
       padding: 10px;
       border-radius: 6px;
     }
+    #szamla{
+      display: none;
+    }
+    #vESk{
+      display: none;
+    }
+    
   </style>
   <script>
     const showFormBtn = document.getElementById('szamlajelen');
@@ -87,7 +94,18 @@
   </div>
 
   <div class="formok">
-    <div class="form-container">
+
+    <div class="form-container" id="szamla">
+      <h2>Új számla hozzáadása</h2>
+      <input type="text" id="vnev" placeholder="Vevő neve" /><br />
+      <input type="text" id="knev" placeholder="Kiállító neve" /><br />
+      <input type="text" id="szszama" placeholder="Számla száma" /><br />
+      <input type="text" id="vegosszeg" placeholder="Végösszeg" /><br />
+      <input type="text" id="afa" placeholder="Áfa" /><br />
+      <button onclick="ujSzamla()">➕ Hozzáadás</button>
+    </div>
+
+    <div class="form-container" id="vESk">
       <h2 id="addTitle">Új elem hozzáadása</h2>
       <input type="text" id="nev" placeholder="Név" /><br />
       <input type="text" id="cim" placeholder="Cím" /><br />
@@ -113,6 +131,8 @@
 
 
     async function betoltSzamlak() {
+      document.getElementById("szamla").style.display="block";
+      document.getElementById("vESk").style.display="none";
       currentType = "szamla";
       document.getElementById("addTitle").innerText = "Új számla hozzáadása";
       document.getElementById("editTitle").innerText = "Számla szerkesztése";
@@ -130,6 +150,8 @@
 
 
     async function betoltVevok() {
+      document.getElementById("szamla").style.display="none";
+      document.getElementById("vESk").style.display="block";
       currentType = "vevo";
       document.getElementById("addTitle").innerText = "Új vevő hozzáadása";
       document.getElementById("editTitle").innerText = "Vevő szerkesztése";
@@ -145,6 +167,8 @@
     }
 
     async function betoltKiallitok() {
+      document.getElementById("szamla").style.display="none";
+      document.getElementById("vESk").style.display="block";
       currentType = "kiallito";
       document.getElementById("addTitle").innerText = "Új kiállító hozzáadása";
       document.getElementById("editTitle").innerText = "Kiállító szerkesztése";
